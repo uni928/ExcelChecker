@@ -69,7 +69,7 @@
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                let sampleRows = jsonData.slice(0, 5)  // 先頭5行だけ表示
+                let sampleRows = jsonData
                     .map(row => row.join('\t'))
                     .join('\n');
 
