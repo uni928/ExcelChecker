@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Excelファイル内容確認ツール</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #drop-zone {
+            border: 3px dashed #aaa;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            background: #fff;
+            text-align: center;
+            padding: 20px;
+            transition: border 0.3s;
+        }
+        #drop-zone.hover {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        #output {
+            margin-top: 20px;
+            background: #eee;
+            padding: 15px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        #file-input {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Excelファイルの内容確認ツール <a href="https://chat.openai.com">（ここで質問する）</a></h1>
+    <div id="drop-zone">ここにExcelファイルをドラッグ＆ドロップ<br>または<br><button onclick="document.getElementById('file-input').click()">ファイルを選択</button></div>
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
+    <div id="output"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const output = document.getElementById('output');
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                let sampleRows = jsonData.slice(0, 5)  // 先頭5行だけ表示
+                    .map(row => row.join('\t'))
+                    .join('\n');
+
+                const promptText = `下記の内容のエクセルファイルは何のエクセルファイルか教えて頂けますか？\nこれは〇〇のエクセルファイルで〇〇の情報があります的な事を教えて頂ければと思います。\n\n${sampleRows}`;
+
+                output.textContent = promptText;
+                copyToClipboard(promptText);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('プロンプトをクリップボードにコピーしました！ブラウザで chat.com にアクセスして、貼り付けて質問して下さい。');
+            }, () => {
+                alert('コピーに失敗しました。');
+            });
+        }
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('hover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('hover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('hover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+    </script>
+</body>
+</html>
